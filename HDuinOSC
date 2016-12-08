@@ -7,36 +7,45 @@ import serial.tools.list_ports
 from time import sleep
 
 arduino = None
-dmxpro = None
 
 def openArduino():
     ports = list(serial.tools.list_ports.comports())
     for p in ports:
-        if 'arduino' in p.description.lower():
-            print ('ARDUINO detected at ', p.device)
-            global arduino
-            arduino = serial.Serial(p.device, 9600, timeout=1)
+    	for s in ['arduino', 'cp2104']:
+		    if s in p.description.lower():
+		        print ('ARDUINO detected at '+ p.device)
+		        global arduino
+		        arduino = serial.Serial(p.device, 9600, timeout=1)
+    if not arduino:
+        print ('No device found..')
 
-def openDMX():
-    ports = list(serial.tools.list_ports.comports())
-    for p in ports:
-        if 'dmx usb pro' in p.description.lower():
-            print ('DMX USB Pro detected at ', p.device)
-            global dmxpro
-            dmxpro = p.device
 
 while True:
 
-    if not arduino:
-        print (arduino)
-        openArduino()
-    if not dmxpro:
-        openDMX()
-
-    if arduino:
-        says = arduino.readline()
-        if says:
-            print(says)
-
-    else:
-        sleep(1)
+	if not arduino:
+		openArduino()
+		sleep(1)
+	else:
+		says = arduino.readline().decode('ascii')
+		try:
+			says = says.decode('ascii').strip()
+			if says:
+				says = says.split(':')
+				port = says[0]
+				if port.isdigit() and len(says)>1:
+					osc = says[1].split(' ')
+					path = osc.pop(0)
+					args = []
+					for el in osc:
+						if el.isdigit():
+							args.append(('i', int(el)))
+						else:
+							args.append(('s', el))
+					try:
+						target = liblo.Address(int(port))
+						liblo.send(target, path, *args)
+						print("OSC sent port:", port, path, args)
+					except liblo.AddressError as err:
+						print(err)
+		except:
+			print ("Can't process message "+str(says))
