@@ -15,7 +15,7 @@ def openArduino():
 		    if s in p.description.lower():
 		        print ('ARDUINO detected at '+ p.device)
 		        global arduino
-		        arduino = serial.Serial(p.device, 9600, timeout=1)
+		        arduino = serial.Serial(p.device, 115200, timeout=1)
     if not arduino:
         print ('No device found..')
 
@@ -26,9 +26,18 @@ while True:
 		openArduino()
 		sleep(1)
 	else:
-		says = arduino.readline().decode('ascii')
+		
 		try:
-			says = says.decode('ascii').strip()
+			says = arduino.readline()
+		except:
+			arduino = None
+		
+		try: 
+			says= says.decode('ascii').strip()
+		except: 
+			says = None
+			
+		try:
 			if says:
 				says = says.split(':')
 				port = says[0]
